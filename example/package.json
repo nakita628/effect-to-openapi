@@ -1,0 +1,16 @@
+{
+  "name": "@effect-to-openapi/example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "vp check",
+    "example": "node effect-to-openapi.ts",
+    "fix": "vp check --fix"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "effect": "4.0.0-rc.112",
+    "effect-to-openapi": "workspace:^",
+    "yaml": "^2.8.0"
+  }
+}

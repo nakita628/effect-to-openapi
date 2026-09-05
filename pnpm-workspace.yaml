@@ -1,0 +1,10 @@
+packages:
+  - packages/*
+  - test
+  - example
+
+# `effect` pulls in msgpackr, whose optional native accelerator (msgpackr-extract) ships a
+# postinstall build. Nothing here serializes msgpack, so the build is declined rather than
+# approved; recording the decision is what keeps `pnpm run` from failing its dependency check.
+allowBuilds:
+  msgpackr-extract: false

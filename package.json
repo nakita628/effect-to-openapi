@@ -1,0 +1,40 @@
+{
+  "name": "effect-to-openapi-monorepo",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "check": "vp fmt --check && vp run -r check",
+    "fix": "markdownlint-cli2 --fix && textlint --fix --ignore-path .gitignore '**/*.md' && vp fmt && vp run -r check --fix",
+    "lint": "vp run lint:md && vp run lint:text && vp run lint:spell && vp run lint:secret && vp run lint:actions",
+    "lint:md": "markdownlint-cli2",
+    "lint:text": "textlint --ignore-path .gitignore '**/*.md'",
+    "lint:spell": "cspell --no-progress --dot '**'",
+    "lint:secret": "secretlint '**/*'",
+    "lint:actions": "node scripts/actionlint.ts -color",
+    "build": "vp run --filter './packages/*' build",
+    "test": "vp run --filter './packages/*' build && vp run -r test",
+    "generate": "vp run --filter './packages/*' build && vp run --filter @effect-to-openapi/test generate",
+    "example": "vp run --filter './packages/*' build && vp run --filter @effect-to-openapi/example example"
+  },
+  "devDependencies": {
+    "@secretlint/secretlint-rule-preset-recommend": "13.0.5",
+    "@textlint-rule/textlint-rule-no-unmatched-pair": "2.0.4",
+    "@vitest/coverage-v8": "4.1.10",
+    "cspell": "10.2.1",
+    "markdownlint-cli2": "0.23.2",
+    "secretlint": "13.0.5",
+    "textlint": "15.8.0",
+    "textlint-filter-rule-comments": "1.3.0",
+    "textlint-rule-no-todo": "2.0.1",
+    "textlint-rule-terminology": "5.2.16",
+    "vite-plus": "0.2.9"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.7.0",
+      "onFail": "download"
+    }
+  }
+}

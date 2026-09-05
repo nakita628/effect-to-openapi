@@ -1,0 +1,8 @@
+# actionlint configuration (https://github.com/rhysd/actionlint/blob/main/docs/config.md).
+# The pinned actionlint version lives in scripts/actionlint.ts.
+paths:
+  .github/workflows/**/*.yml:
+    ignore:
+      # `concurrency.queue` is newer than actionlint's schema. release.yml uses it so that a
+      # release run for an intermediate version bump is queued rather than cancelled.
+      - 'unexpected key "queue" for "concurrency" section'

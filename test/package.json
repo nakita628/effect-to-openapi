@@ -1,0 +1,16 @@
+{
+  "name": "@effect-to-openapi/test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "vp check",
+    "fix": "vp check --fix",
+    "generate": "node src/generate.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "effect": "4.0.0-rc.112",
+    "effect-to-openapi": "workspace:^",
+    "yaml": "^2.8.0"
+  }
+}

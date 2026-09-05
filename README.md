@@ -1,1 +1,1 @@
-# effect-to-openapi
+packages/effect-to-openapi/README.md

@@ -1,0 +1,43 @@
+name: Test
+
+# Build, test and check the workspace, in the same order and with the same commands a developer
+# runs locally — `vp run check` is the repository's single definition of "clean", so CI and the
+# working copy can never disagree about what it means.
+#
+# Action versions are pinned to a commit digest with the tag kept as a comment, the shape
+# Renovate's `helpers:pinGitHubActionDigests` maintains. A floating tag is a mutable dependency
+# with write access to the job.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: voidzero-dev/setup-vp@49c3e4e92c52e7f8392712a9267bbe71c5ab30e5 # v1.19.0
+        with:
+          node-version: '22'
+          cache: true
+
+      - run: vp install --frozen-lockfile
+
+      # `test` and `example` resolve `effect-to-openapi` through its `dist`, so both the test
+      # run and the type-aware lint in `check` need the library built first.
+      - run: vp run --filter ./packages/effect-to-openapi build
+
+      - run: vp run -r test
+
+      - run: vp run check
+
+      # markdownlint, textlint, cspell, secretlint and actionlint over the docs, configs and
+      # this workflow — the same single command as locally.
+      - run: vp run lint
