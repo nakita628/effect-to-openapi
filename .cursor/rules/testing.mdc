@@ -1,0 +1,57 @@
+---
+description: Test conventions for the vitest suite and the generated fixtures
+globs: **/*.test.ts
+alwaysApply: false
+---
+
+# Tests
+
+The suite runs on vitest through vite-plus. `include` is `src/**/*.test.ts`, so a test lives
+next to what it covers (`src/core/index.test.ts`) or at the package root for cross-cutting
+behavior (`src/index.test.ts`, `src/routes.test.ts`, `src/types.test.ts`).
+
+## Shape
+
+- Import the harness from **`vite-plus/test`**, not `vitest`:
+  `import { describe, expect, it } from 'vite-plus/test'`.
+- **Assert through the public API**: `import { ... } from '../index.js'`. Reaching into a
+  submodule to test it means the behavior is not observable from the API, which is a design
+  question, not a test question.
+- `it`, never `test` (`vitest/consistent-test-it`). Titles are lowercase sentences describing
+  the behavior, as in `reads metadata and the refId straight from annotate`.
+- `toStrictEqual` over `toEqual` (`vitest/prefer-strict-equal`); an equality matcher over
+  `toBe(true)` on a comparison (`vitest/prefer-equality-matcher`).
+- Repeated cases use `it.each` (`vitest/prefer-each`), hooks go on top and in order.
+- `expect` only inside a test case, never conditionally
+  (`vitest/no-standalone-expect`, `vitest/no-conditional-expect`).
+- `toThrow` carries a message (`vitest/require-to-throw-message`).
+- Snapshots stay small and literal (`vitest/no-large-snapshots`,
+  `vitest/no-interpolation-in-snapshots`); prefer an explicit object.
+- `it.only`, `it.skip`, `test.`-prefixed names and commented-out tests all fail lint
+  (`no-focused-tests`, `no-disabled-tests`, `no-test-prefixes`, `no-commented-out-tests`).
+
+## What tests may do that `src` may not
+
+Test files are exempt from the structural and cast rules, and only those: `any`, type
+assertions, `let`, imperative arrangement, empty stub callbacks and cross-layer imports are
+all fine when they spell the fixture out most clearly. Everything else in the TypeScript rule
+still applies.
+
+## Coverage of behavior
+
+- A result is checked on both branches: `document.ok` true with the expected value, and the
+  `{ ok: false, error }` path with its `type` and `data`.
+- Anything version-dependent is asserted for **3.0, 3.1 and 3.2** — that is what
+  `specifics/` exists for, and a one-version test hides the difference.
+- A bug fix ships with a test that fails before it and passes after.
+
+## Generated fixtures
+
+`test/` is a smoke harness, not part of the unit suite: `test/src/schema.ts` holds the
+schemas, `test/src/generate.ts` writes one document per version to `test/out/`.
+
+- Changing the generator output means running `pnpm generate` and reviewing the diff in
+  `test/out/` as part of the change.
+- `test/out/` is git-ignored — it is verification, not a committed artifact. Never hand-edit it.
+- Adding a schema shape to the smoke harness goes in `test/src/schema.ts`, and it should be a
+  shape the unit suite also covers.

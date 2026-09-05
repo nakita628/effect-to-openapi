@@ -1,0 +1,96 @@
+---
+description: Repository map, commands, invariants and the definition of done (always applied)
+alwaysApply: true
+---
+
+# effect-to-openapi — how this repository is run
+
+Builds OpenAPI 3.0 / 3.1 / 3.2 documents from Effect Schema **v4**, with no dependency
+besides `effect` — the OpenAPI object model is defined in the package itself (`src/openapi`).
+
+This repository is operated **through agent conversation alone**. Nothing here assumes a human
+will fix it up afterwards. The config files are the source of truth: when an instruction
+contradicts one, quote the config and ask before changing it.
+
+Everything committed is written in **English** — code, comments, TSDoc, Markdown, commit
+messages, PR bodies, workflow comments. textlint and cspell assume it.
+
+## Layout
+
+```
+packages/effect-to-openapi/   the published package (the only npm artifact)
+  src/                        implementation; see the architecture rule for the layering
+  lint/custom.js              oxlint JS plugin holding this repo's structural conventions
+  vite.config.ts              source of truth for lint (634 lines; the comments are the design)
+test/                         smoke generation: writes one YAML per version to out/
+example/                      runs the README example end to end
+scripts/actionlint.ts         downloads a pinned actionlint, verifies its checksum, runs it
+vite.config.ts                source of truth for formatting (printWidth 100, single quotes, no semicolons)
+README.md                     symlink to packages/effect-to-openapi/README.md
+```
+
+## Commands
+
+`vp` (vite-plus) is the task runner. Run these from the repository root.
+
+| Goal | Command |
+| --- | --- |
+| Install dependencies | `vp install --frozen-lockfile` |
+| Build | `pnpm build` |
+| Test (builds first) | `pnpm test` |
+| Types and lint, formatting check included | `pnpm check` |
+| Autofix formatting, lint and docs | `pnpm fix` |
+| Documentation linters | `pnpm lint` |
+| Regenerate the sample documents | `pnpm generate` |
+| Run the README example | `pnpm example` |
+
+- `test`, `example` and the type-aware lint all resolve `effect-to-openapi` through `dist`.
+  Running `vp run -r test` or `vp run check` without building first produces false failures.
+  Build first.
+- CI (`.github/workflows/test.yml`) runs these same commands in this same order, so a clean
+  working copy means a green CI.
+
+## Definition of done
+
+Before reporting a task finished, **all four must be green**. One failure means not done.
+
+1. `pnpm build`
+2. `pnpm test`
+3. `pnpm check`
+4. `pnpm lint`
+
+If the public API changed, `packages/effect-to-openapi/src/index.ts` and
+`packages/effect-to-openapi/README.md` are both updated in the same change.
+
+Report results as they are. Never call a task complete while hiding a failing command.
+
+## Invariants
+
+- **Never relax a linter to get a change through.** Do not set a rule to `'off'`, do not
+  lower `categories`, do not drop `denyWarnings`. If a rule genuinely does not fit, say so
+  and ask before touching it.
+- **Suppressions live next to the code, naming the rule and the reason:**
+  `// oxlint-disable-next-line rule-name -- reason`. Never disable a whole file. Because
+  `reportUnusedDisableDirectives: 'deny'` is on, a suppression that stopped firing must be
+  deleted along with the rule it silenced.
+- **No `TODO` / `FIXME`.** `no-warning-comments` rejects them in source, textlint's `no-todo`
+  in docs. Parked work belongs in an issue or the PR body.
+- **Nothing throws.** Every failure travels as `{ ok: true, value } | { ok: false, error }`
+  built by `src/errors`.
+- **Never hand-edit generated files:** `pnpm-lock.yaml` (let `vp install` write it), `dist/`,
+  `test/out/`, `example/effect-to-openapi-openapi-docs.yml`.
+- **`effect` is pinned to `4.0.0-rc.112`** — an rc, so the API still moves. Bumping it means
+  updating `devDependencies` and `peerDependencies` in
+  `packages/effect-to-openapi/package.json` plus the `devDependencies` of `test/` and
+  `example/` together, in one change.
+
+## Working order
+
+1. Read the rules in force for the files you are about to touch (`rules` and `overrides` in
+   the relevant `vite.config.ts`).
+2. Implement it the way the surrounding code is written. Do not introduce a second idiom.
+3. `pnpm fix`, then the four commands above.
+4. Commit with an imperative one-line subject in the shape of the existing history
+   (`Build effect-to-openapi for Effect v4`) and a body explaining why. This repository does
+   not use `feat:` / `fix:` prefixes.
+5. In the final report state what changed, which commands verified it, and anything left out.

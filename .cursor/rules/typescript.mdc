@@ -1,0 +1,82 @@
+---
+description: TypeScript conventions implied by the oxlint configuration
+globs: **/*.ts
+alwaysApply: false
+---
+
+# TypeScript conventions
+
+The source of truth is the `lint` block of `packages/effect-to-openapi/vite.config.ts`.
+What follows is what cannot be worked around. `.test.ts` relaxes some of it — see the
+testing rule.
+
+## Functions and declarations
+
+- A module-level function is a **`function` declaration**. `const f = () => {}` is reported by
+  `custom/function-declaration` and `func-style` (an annotated const keeps its contextual
+  type and is allowed).
+- **No `let`** (`custom/no-let`; only a `for` statement head is exempt). Every transformer
+  here is one const expression, and that is what keeps them composable.
+- A pure boolean predicate reads as a question: **`is*` / `has*` / `can*`**
+  (`custom/predicate-is-name`).
+- A `type` alias is **PascalCase** (`custom/type-pascal-case`).
+- Initialize at the declaration (`init-declarations`). No reassignment, and no writing
+  through a parameter (`no-param-reassign` with `props: true`).
+
+## Types
+
+- **`type X = {...}` only — no `interface`** (`consistent-type-definitions: 'type'`).
+- **No `any`**, **no `!` non-null assertion**, and **no type assertions at all**
+  (`consistent-type-assertions` with `assertionStyle: 'never'`). Narrow with a type guard
+  instead, in the shape of `src/utils` (`isString`, `isObject`, …).
+- Every `unsafe-*` rule (argument / assignment / member-access / call / return) is an error.
+  Take `unknown` and bring it down through a guard.
+- Type imports use `import type` (`consistent-type-imports`).
+- `noUncheckedIndexedAccess: true` — an indexed access includes `undefined`. Handle it with a
+  guard or `??`, not an assertion.
+- `@ts-ignore` is banned (`ban-ts-comment`, `prefer-ts-expect-error`).
+
+## Imports and exports
+
+- **A relative specifier always carries its `.js` extension** (`import/extensions: always`).
+  NodeNext resolution requires it at runtime and `tsc` does not check it.
+- **No default exports.** The one exception is a `vite.config.ts`, where Vite requires it and
+  the line carries `// oxlint-disable-next-line import/no-default-export -- ...`.
+- `export *` belongs only to a directory's `index.ts` barrel; see the architecture rule.
+- Do not export what nothing consumes. "Exported only for a test" is not a reason — tests go
+  through the public API (`../index.js`).
+- ESM only: no `require`, no CommonJS. This is a zero-dependency library, so it does not even
+  import `node:` builtins (`node/no-top-level-await` is on for the same reason: reaching for
+  the runtime would make it unusable in a browser or a worker).
+
+## Errors and async
+
+- Do not throw. Return `{ ok: false, error }` built by a constructor from
+  `src/errors/index.ts` (`conflictError`, `missingParameterDataError`, …).
+- If a throw is ever unavoidable, throw an `Error` with a message
+  (`no-throw-literal`, `unicorn/error-message`).
+- A catch binding is named **`error`** (`unicorn/catch-error-name`).
+- This package is synchronous. Any async code that arrives must satisfy
+  `no-floating-promises`, `require-await` and `no-misused-promises`.
+
+## Details
+
+- `console` is banned in `src`. It is allowed in the `test/` and `example/` scripts, where
+  printing a report is the point.
+- Regular expressions are literals with the `/u` flag (`require-unicode-regexp`).
+- Template literals over concatenation. A `${...}` inside a single-quoted string is rejected —
+  it is almost always a template literal that lost its backticks.
+- No leading-underscore identifiers. The single exception is Effect's **`_tag`** discriminant.
+- Filenames are kebab-case (`unicorn/filename-case`).
+- Do not hand-format. `printWidth: 100`, single quotes, no semicolons and import sorting come
+  from the root `vite.config.ts`; run `pnpm fix` and let oxfmt write it.
+
+## TSDoc
+
+- Doc comments are TSDoc. **The type lives in the signature, never in the comment.**
+- No `@param` / `@returns` boilerplate. The house style is one line over a self-describing
+  signature: `/** JSON pointer to a component schema. */`.
+- Whatever you do write carries a description (`require-param-description`,
+  `require-returns-description`).
+- `@example` is welcome; the TSDoc on `generateDocument` is the model.
+- The usable tags are listed in `check-tag-names`' `definedTags` (`@remarks`, `@typeParam`, …).

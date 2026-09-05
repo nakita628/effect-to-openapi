@@ -1,0 +1,74 @@
+---
+description: src layering, dependency direction and per-directory responsibilities
+globs: packages/effect-to-openapi/src/**/*.ts
+alwaysApply: false
+---
+
+# Layering
+
+Dependencies run **one way**. The order is enforced mechanically by the
+`no-restricted-imports` entries in the `overrides` of `vite.config.ts`, each carrying a
+message that says what the directory may import.
+
+```
+utils / openapi / errors   (leaves: no project-internal imports)
+  → types                  (re-exports the openapi model; may add errors)
+  → ast                    (Effect Schema AST readers: utils, types)
+  → metadata / specifics    (metadata: utils, ast, types / specifics: utils, types)
+  → generator              (per-schema-type transformers, pure)
+  → helper                 (composition with the generation context;
+                            schema → parameter → route → components)
+  → core                   (public entry points)
+```
+
+`generator` cannot import `core` or `helper`; `helper` cannot import `core`. Wanting to reach
+an upper layer means the design is wrong — pass the value in as an argument, or split the
+layer.
+
+## Responsibilities
+
+| Directory | Owns | Never does |
+| --- | --- | --- |
+| `utils/` | type guards and object helpers | import anything project-internal |
+| `openapi/` | the OpenAPI object model types (why this package is dependency-free) | logic |
+| `errors/` | discriminated error objects and their constructors | throw |
+| `types/` | internal types, re-export of the openapi model | transformation logic |
+| `ast/` | reading the Effect Schema AST (chain, checks, template literals) | build OpenAPI shapes |
+| `metadata/` | reading `.annotate()` (`getOpenApiMetadata`, `getRefId`) | interpret the AST directly |
+| `specifics/` | the 3.0 / 3.1 / 3.2 differences (`nullable` vs `type: ['null']`, bounds, tuples) | schema transformation |
+| `generator/` | AST node → SchemaObject, purely | registry or context bookkeeping |
+| `helper/` | composing routes, parameters and components | shape the public API |
+| `core/` | `createRegistry`, `generateDocument`, the class API | implement transformation |
+
+## Barrel rules
+
+- From outside, the only entry a module names is **`<dir>/index.ts`**.
+- A directory with more than one file makes that `index.ts` a barrel of explicit re-exports
+  (`src/helper/index.ts` is the model).
+- **Inside a directory, siblings import each other's files directly.** Going through the own
+  barrel (`./index.js`) turns the one-way order into a cycle, which `import/no-cycle`
+  reports; `generator` and `helper` restate the ban in their overrides.
+
+## Public API
+
+- The public surface is the explicit re-export list in `src/index.ts`. **What is not listed
+  there is not public.**
+- Changing it means updating, in the same change:
+  1. `src/index.ts`, keeping values and types in their separate blocks and the existing order
+  2. the API table and examples in `packages/effect-to-openapi/README.md`
+  3. tests, written through the public API
+- Do not introduce a breaking change on your own initiative. Say what it would take and ask.
+
+## Adding a directory
+
+1. Decide where it sits in the order above.
+2. Add its `no-restricted-imports` override to `vite.config.ts`, with a message naming what it
+   may import, in the voice of the existing entries.
+3. Update the layering comment that sits just above `overrides`.
+4. Add its row to the table in this rule file.
+
+## Version differences
+
+Anything that differs across the three OpenAPI versions belongs in **`specifics/`**. Never
+branch on `if (version === '3.0.0')` inside `generator/` or `helper/` — take a
+`VersionSpecifics` and call it. A new difference ships with assertions for all three versions.

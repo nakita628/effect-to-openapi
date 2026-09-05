@@ -1,0 +1,9 @@
+{
+  "install": "npm install -g pnpm@11.25.0 && pnpm install --frozen-lockfile && pnpm build",
+  "terminals": [
+    {
+      "name": "verify",
+      "command": "pnpm test && pnpm check && pnpm lint"
+    }
+  ]
+}

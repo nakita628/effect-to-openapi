@@ -1,0 +1,73 @@
+---
+description: Workflows, dependency pinning, configuration edits and the release flow
+globs: .github/**/*.yml,**/package.json,**/vite.config.ts,scripts/**/*.ts,pnpm-workspace.yaml
+alwaysApply: false
+---
+
+# CI, configuration and releases
+
+## Workflows
+
+- `test.yml` runs the same commands as a developer, in the same order:
+  `vp install --frozen-lockfile` → build the package → `vp run -r test` → `vp run check` →
+  `vp run lint`. If you add a check, add it to the root `package.json` scripts **and** to this
+  workflow, so local and CI cannot disagree about what "clean" means.
+- **Actions are pinned to a commit digest with the tag kept as a comment**, the shape
+  Renovate's `helpers:pinGitHubActionDigests` maintains:
+  `uses: actions/checkout@3d3c42e5... # v7.0.1`. A floating tag is a mutable dependency with
+  write access to the job — never introduce one.
+- `permissions` is declared per job and kept minimal (`contents: read` unless a job needs more).
+- actionlint runs through `scripts/actionlint.ts`, which downloads a pinned release and
+  verifies its checksum. Bumping it means changing `VERSION` and **every entry of
+  `CHECKSUMS`** together, taken from that release's `*_checksums.txt`.
+- A schema warning actionlint cannot know about is silenced in `.github/actionlint.yaml` by
+  its exact message, with the reason — not by dropping the check.
+
+## Releasing
+
+Driven entirely by the `version` field of `packages/effect-to-openapi/package.json`.
+
+1. Bump `version` on `main`.
+2. `Test` runs on that push; if it is green, `release.yml` tags `v<version>`, publishes to npm
+   with provenance when the registry does not have it yet, and creates the GitHub release.
+3. A push that does not change the version does nothing, and every job is safe to re-run.
+
+Rules that follow from that:
+
+- **Never reuse or roll back a published version.** To fix a release, bump again.
+- Never create the `v<version>` tag by hand; a tag pointing at another commit makes the
+  workflow stop with an error that says what to do.
+- The version bump is its own commit, subject `<version>` (matching the existing history).
+- Only `packages/effect-to-openapi` publishes. `test/` and `example/` are `private: true` and
+  stay that way.
+- `files: ["dist"]` — anything a consumer needs must be reachable from the build output.
+
+## Editing the lint configuration
+
+`packages/effect-to-openapi/vite.config.ts` is the standard this repository holds itself to,
+and its comments explain every choice. When you touch it:
+
+- Adding a rule: place it in the section it belongs to and, if the reason is not obvious from
+  its name, write the reason above it.
+- A rule that does not fit this codebase is **left out of the list**, with a comment where it
+  would have gone saying why — as `new-cap` and `no-implicit-coercion` are. It is never
+  set to `'off'`.
+- `categories` (correctness / suspicious / perf) are errors, so rules in those categories are
+  not restated in `rules`.
+- `plugins` replaces oxlint's defaults, so the default plugins are restated there — do not
+  drop one while adding another.
+- `test/vite.config.ts` mirrors the package's list minus the library-internal rules. Keep
+  them in step when you add something that applies to both.
+- Formatting options live **only** in the root `vite.config.ts`; a workspace config declares
+  just its `ignorePatterns`.
+
+## Dependencies
+
+- `effect` is pinned exactly (`4.0.0-rc.112`) in the package, `test/` and `example/`, and as
+  the `peerDependencies` range. All four move together.
+- The `allowBuilds: { msgpackr-extract: false }` entry in `pnpm-workspace.yaml` is a recorded
+  decision, not a leftover: declining that native postinstall is what keeps `pnpm run` from
+  failing its dependency check. Leave it.
+- `pnpm-lock.yaml` is written by `vp install`. Never edit it by hand, and never delete it to
+  "fix" an install.
+- `devEngines` pins pnpm; do not switch the package manager.

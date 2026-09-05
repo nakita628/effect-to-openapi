@@ -1,0 +1,57 @@
+---
+description: Markdown and prose rules enforced by markdownlint, textlint and cspell
+globs: **/*.md
+alwaysApply: false
+---
+
+# Documentation
+
+Three linters split the work and never overlap: **markdownlint** owns the document structure,
+**textlint** the prose, **cspell** the individual words. Run all of them with `pnpm lint`;
+`pnpm fix` autofixes markdownlint and textlint.
+
+`README.md` at the root is a **symlink** to `packages/effect-to-openapi/README.md`. Edit the
+package copy; never replace the symlink with a file.
+
+## Structure (markdownlint)
+
+- Every default rule is on. A rule that does not fit is turned off in
+  `.markdownlint-cli2.jsonc` with the reason beside it — never left silently unset.
+- Ordered lists count `1.` `2.` `3.`.
+- Duplicate headings are allowed only under different parents (`MD024` is `siblings_only`).
+- **Every fenced block declares a language, from the closed list**: `ts`, `tsx`, `js`, `json`,
+  `jsonc`, `yaml`, `yml`, `bash`, `sh`, `text`, `diff`, `md`. `typescript` is not in the list
+  on purpose — one spelling per language.
+- Line length is unchecked (an API table row cannot wrap), but prose still gets wrapped by
+  `pnpm fix`.
+
+## Prose (textlint)
+
+- The docs are English. The Japanese presets are deliberately absent, so do not add
+  Japanese prose to a `.md` file.
+- `terminology` enforces the canonical spelling of ~250 technical terms: **JavaScript**,
+  **TypeScript**, **npm**, **GitHub**, **JSON**, **macOS**, **OpenAPI** (never "Open API").
+  Code spans and fenced blocks are skipped, so `effect-to-openapi` and
+  `Schema.String.annotate()` are safe.
+- `README` and `re-export` are excluded from the term list on purpose — that is how this
+  repository spells them.
+- Quotes, brackets and parentheses must balance (`no-unmatched-pair`) — the cheapest guard
+  against a truncated edit.
+- No `TODO` in the docs.
+- A deliberate exception is a `<!-- textlint-disable rule-name -->` comment next to the
+  sentence that needs it, never a change to the textlint config.
+
+## Spelling (cspell)
+
+- cspell reads **every** file, source and config included, not just the docs. Code blocks are
+  checked too, because the README blocks are what users copy.
+- A new project word is a one-line addition to `project-words.txt`, and nothing else.
+  Do not add `ignoreWords` or `ignorePaths` to `cspell.config.yaml` to silence a word.
+- camelCase and snake_case are split automatically, so `unionPreferredType` needs no entry.
+- Everything git ignores is skipped already.
+
+## Writing the README
+
+- The package README is the API reference: an intro, install, quick start, then the API table.
+- Examples must be runnable against the current API. `example/effect-to-openapi.ts` is the
+  executable copy of the quick start — keep the two in step and verify with `pnpm example`.

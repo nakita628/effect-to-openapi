@@ -1,0 +1,84 @@
+---
+description: Step-by-step playbooks for the recurring tasks in this repository — supporting a new Effect Schema type, fixing a generator bug, adding an OpenAPI version difference, bumping effect, releasing, and clearing a lint failure. Read this when starting any of those.
+alwaysApply: false
+---
+
+# Playbooks
+
+Every playbook ends the same way: `pnpm fix`, then `pnpm build`, `pnpm test`, `pnpm check`,
+`pnpm lint`, all green.
+
+## Support a new Effect Schema type
+
+1. Write the failing test first, through the public API, in the file that owns the behavior
+   (`src/types.test.ts` for schema shapes, `src/routes.test.ts` for route wiring).
+2. Read the node in `src/ast/index.ts`. If the AST reader cannot see what you need, extend
+   `ast/` — not the generator.
+3. Add the transformer to the right `src/generator/*.ts` (`primitive`, `literal`, `object`,
+   `tuple`, `union`, `lazy`) and dispatch to it from `transformSchema` in
+   `src/generator/index.ts`. Keep it pure: no context bookkeeping.
+4. Anything that differs by OpenAPI version goes through `VersionSpecifics` in
+   `src/specifics/index.ts`, and gets asserted for 3.0, 3.1 and 3.2.
+5. If it is unsupported on purpose, return `unknownSchemaTypeError(...)` with a message that
+   names the next action.
+6. Add the shape to `test/src/schema.ts`, run `pnpm generate`, and read the `test/out/` diff.
+7. Update the README if the supported-types documentation changes.
+
+## Fix a generator bug
+
+1. Reproduce it as a test that fails, at the smallest schema that shows it.
+2. Find the layer that owns the mistake — reading the AST (`ast/`), reading annotations
+   (`metadata/`), the shape (`generator/`), composition (`helper/`), or a version difference
+   (`specifics/`) — and fix it there. Do not patch it downstream in `core/`.
+3. Check whether the sibling generators have the same mistake.
+4. `pnpm generate` and review the diff: an unexpected change elsewhere in `test/out/` means
+   the fix is broader than intended.
+
+## Add an OpenAPI version difference
+
+1. Add the operation to the `VersionSpecifics` type in `src/types/index.ts`.
+2. Implement it in all three of `specificsV30` / `specificsV31` / `specificsV32`, each with
+   the TSDoc line saying what that version emits.
+3. Call it from the generator or helper that needs it — never branch on the version string
+   there.
+4. Assert the output for all three versions, then `pnpm generate`.
+
+## Bump effect
+
+1. Change the pin in `packages/effect-to-openapi/package.json` (`devDependencies` **and**
+   `peerDependencies`), `test/package.json` and `example/package.json` in one change.
+2. `vp install`, then `pnpm build`. The rc moves the Schema API, so expect type errors in
+   `ast/` and `metadata/` first.
+3. `pnpm test`. Read every diff in behavior rather than adjusting an assertion to match.
+4. Update the version stated in the README install section and its Effect v4 note.
+5. Report which upstream changes forced code changes; that is what the commit body explains.
+
+## Release
+
+1. Confirm `main` is green.
+2. Bump `version` in `packages/effect-to-openapi/package.json` only, in its own commit whose
+   subject is the version (`0.0.3`).
+3. Push to `main` and let `Test` → `release.yml` tag, publish and release.
+4. Do not tag or publish by hand. If the workflow stops, its error message says what to do —
+   usually bump again.
+
+## Clear a lint failure
+
+1. Run the failing command and read the rule name in the message.
+2. Try `pnpm fix` first — formatting, import order, markdownlint and textlint are autofixable.
+3. Otherwise **change the code, not the rule.** The rules encode the design: no `let` means
+   rewrite as one const expression; no assertion means narrow with a guard; a
+   `no-restricted-imports` message means the dependency direction is wrong.
+4. Only if the rule genuinely cannot hold, add
+   `// oxlint-disable-next-line rule-name -- reason` on that line, and say in the report that
+   you added a suppression and why.
+5. An unknown word is one line in `project-words.txt`. A missing dictionary is not a reason to
+   loosen `cspell.config.yaml`.
+
+## Change the public API
+
+1. Update `src/index.ts` (values and types in their own blocks, existing order kept).
+2. Update the API table and examples in `packages/effect-to-openapi/README.md`.
+3. Mirror the change in `example/effect-to-openapi.ts` and verify with `pnpm example`.
+4. Cover it from `src/index.test.ts`.
+5. State plainly in the report whether the change is breaking, and what a consumer must do.
