@@ -8,6 +8,7 @@ import {
   unwrapNullable,
   valueMembers,
 } from '../ast/index.js'
+import { collect } from '../errors/index.js'
 import { getInternalMetadata, getRefId } from '../metadata/index.js'
 import type {
   DiscriminatorObject,
@@ -92,14 +93,11 @@ export function unionSchema(
   if (literals !== undefined && literals.length > 0) {
     return enumSchema(literals, isNullable, mapNullableType)
   }
-  const memberSchemas = members.map((member) => mapItem(member))
-  const failed = memberSchemas.find((member) => !member.ok)
-  if (failed !== undefined && !failed.ok) {
-    return failed
+  const memberSchemas = collect(members.map((member) => mapItem(member)))
+  if (!memberSchemas.ok) {
+    return memberSchemas
   }
-  const schemas = mapNullableOfArray(
-    memberSchemas.flatMap((member) => (member.ok ? [member.value] : [])),
-  )
+  const schemas = mapNullableOfArray([...memberSchemas.value])
   // `anyOf` / `oneOf` must be non-empty arrays; a union of only `undefined` accepts anything
   if (schemas.length === 0) {
     return { ok: true, value: {} } as const

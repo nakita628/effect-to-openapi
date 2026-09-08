@@ -31,14 +31,14 @@ layer.
 | --- | --- | --- |
 | `utils/` | type guards and object helpers | import anything project-internal |
 | `openapi/` | the OpenAPI object model types (why this package is dependency-free) | logic |
-| `errors/` | discriminated error objects and their constructors | throw |
+| `errors/` | discriminated error objects, and the `collect` / `collectEntries` helpers | export the module-local `Result<T>` that types them |
 | `types/` | internal types, re-export of the openapi model | transformation logic |
 | `ast/` | reading the Effect Schema AST (chain, checks, template literals) | build OpenAPI shapes |
 | `metadata/` | reading `.annotate()` (`getOpenApiMetadata`, `getRefId`) | interpret the AST directly |
 | `specifics/` | the 3.0 / 3.1 / 3.2 differences (`nullable` vs `type: ['null']`, bounds, tuples) | schema transformation |
 | `generator/` | AST node → SchemaObject, purely | registry or context bookkeeping |
 | `helper/` | composing routes, parameters and components | shape the public API |
-| `core/` | `createRegistry`, `generateDocument`, the class API | implement transformation |
+| `core/` | `OpenAPIRegistry`, `generateDocument`, `generateComponents` | implement transformation |
 
 ## Barrel rules
 

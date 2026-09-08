@@ -1,6 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 
-import { createRegistry, generateDocument } from 'effect-to-openapi'
+import { OpenAPIRegistry, generateDocument } from 'effect-to-openapi'
 import { stringify } from 'yaml'
 
 import { info, Post, routes, User } from './schema.ts'
@@ -16,7 +16,7 @@ const outDir = new URL('../out/', import.meta.url)
 mkdirSync(outDir, { recursive: true })
 
 for (const version of VERSIONS) {
-  const registry = createRegistry()
+  const registry = OpenAPIRegistry()
   registry.register('User', User)
   registry.register('Post', Post)
   for (const route of routes) {

@@ -1,15 +1,10 @@
 import * as fs from 'node:fs'
 
 import { Schema } from 'effect'
-import {
-  OpenApiGeneratorV3,
-  // The exact same can be achieved by importing OpenApiGeneratorV31 instead:
-  // OpenApiGeneratorV31
-  OpenAPIRegistry,
-} from 'effect-to-openapi'
+import { OpenAPIRegistry, generateDocument } from 'effect-to-openapi'
 import * as yaml from 'yaml'
 
-const registry = new OpenAPIRegistry()
+const registry = OpenAPIRegistry()
 
 const UserIdSchema = registry.registerParameter(
   'UserId',
@@ -58,9 +53,8 @@ registry.registerPath({
 })
 
 function getOpenApiDocumentation() {
-  const generator = new OpenApiGeneratorV3(registry.definitions)
-
-  return generator.generateDocument({
+  // `openapi` selects the output flavour: '3.1.0' / '3.2.0' generate the 3.1+ shape instead.
+  return generateDocument(registry.definitions, {
     openapi: '3.0.0',
     info: {
       version: '1.0.0',

@@ -178,13 +178,18 @@ function ownMetadata(ast: Ast.AST): CollectedMetadata {
 }
 
 /**
- * Collects the OpenAPI metadata of a schema, walking the chain of encodings, suspensions and
+ * Collects the OpenAPI metadata of an already resolved chain of encodings, suspensions and
  * `null` / `undefined` wrapper unions. Outer nodes override inner ones.
  */
+export function collectFromChain(nodes: readonly Ast.AST[]): CollectedMetadata {
+  return nodes.toReversed().reduce((acc, node) => mergeCollected(acc, ownMetadata(node)), EMPTY)
+}
+
+/**
+ * `collectFromChain` for a node whose chain has not been resolved yet.
+ */
 export function collectMetadata(ast: Ast.AST): CollectedMetadata {
-  return chain(ast)
-    .toReversed()
-    .reduce((acc, node) => mergeCollected(acc, ownMetadata(node)), EMPTY)
+  return collectFromChain(chain(ast))
 }
 
 /**

@@ -1,13 +1,12 @@
 import { SchemaAST } from 'effect'
 
-import type { AST } from '../ast/index.js'
-import { checks, templateLiteralPattern } from '../ast/index.js'
+import { templateLiteralPattern } from '../ast/index.js'
 import { unknownSchemaTypeError } from '../errors/index.js'
-import { getRefId } from '../metadata/index.js'
 import type {
   GeneratorOptions,
   MapSubSchema,
   ReferenceObject,
+  SchemaInfo,
   SchemaObject,
   VersionSpecifics,
 } from '../types/index.js'
@@ -25,17 +24,10 @@ export type TransformContext = {
 }
 
 /**
- * Converts a schema to an OpenAPI SchemaObject. `ast` is the original node (its chain provides
- * the JSON Schema keywords), `base` the node the generator dispatches on (the result of
- * `unwrapChained`). Nullability and the default value are computed by the caller.
+ * Converts a schema to an OpenAPI SchemaObject from the facts `info` resolved for it.
  */
-export function transformSchema(
-  ast: AST.AST,
-  base: AST.AST,
-  isNullable: boolean,
-  defaultValue: unknown,
-  ctx: TransformContext,
-) {
+export function transformSchema(info: SchemaInfo, ctx: TransformContext) {
+  const { base, isNullable, defaultValue } = info
   const { specifics, mapItem } = ctx
   if (SchemaAST.isNull(base)) {
     return { ok: true, value: specifics.nullType } as const
@@ -51,26 +43,20 @@ export function transformSchema(
       mapItem,
     )
   }
-  const result = transformWithoutDefault(ast, base, isNullable, ctx)
+  const result = transformWithoutDefault(info, ctx)
   if (!result.ok) {
     return result
   }
   return { ok: true, value: { ...result.value, default: defaultValue } } as const
 }
 
-function transformWithoutDefault(
-  ast: AST.AST,
-  base: AST.AST,
-  isNullable: boolean,
-  ctx: TransformContext,
-) {
+function transformWithoutDefault(info: SchemaInfo, ctx: TransformContext) {
+  const { base, keywords, isNullable, refId } = info
   const { specifics, options, mapItem, generateSchemaRef } = ctx
   const mapNullableType = (type: Parameters<VersionSpecifics['mapNullableType']>[0]) =>
     specifics.mapNullableType(type, isNullable)
   const mapNullableOfArray = (objects: (SchemaObject | ReferenceObject)[]) =>
     specifics.mapNullableOfArray(objects, isNullable)
-  const keywords = checks(ast)
-
   if (SchemaAST.isString(base)) {
     return { ok: true, value: stringSchema(keywords, mapNullableType) } as const
   }
@@ -123,6 +109,6 @@ function transformWithoutDefault(
   }
   return {
     ok: false,
-    error: unknownSchemaTypeError({ currentSchema: base, schemaName: getRefId(ast) }),
+    error: unknownSchemaTypeError({ currentSchema: base, schemaName: refId }),
   } as const
 }

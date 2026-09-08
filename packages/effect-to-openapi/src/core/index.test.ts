@@ -2,15 +2,14 @@ import { Schema } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
 import {
+  OpenAPIRegistry,
+  generateComponents,
+  generateDocument,
   getOpenApiMetadata,
   getRefId,
-  OpenApiGeneratorV3,
-  OpenApiGeneratorV31,
-  OpenApiGeneratorV32,
-  OpenAPIRegistry,
 } from '../index.js'
 
-describe('class API', () => {
+describe('registry and generation', () => {
   it('reads metadata and the refId straight from annotate', () => {
     const Id = Schema.String.annotate({ identifier: 'Id', description: 'The id' })
     expect(getRefId(Id.ast)).toBe('Id')
@@ -19,7 +18,7 @@ describe('class API', () => {
   })
 
   it('reproduces the zod-to-openapi example document', () => {
-    const registry = new OpenAPIRegistry()
+    const registry = OpenAPIRegistry()
     const UserIdSchema = registry.registerParameter(
       'UserId',
       Schema.String.annotate({ param: { name: 'id', in: 'path' }, example: '1212121' }),
@@ -51,7 +50,7 @@ describe('class API', () => {
     })
     const info = { version: '1.0.0', title: 'My API', description: 'This is the API' }
     expect(
-      new OpenApiGeneratorV3(registry.definitions).generateDocument({
+      generateDocument(registry.definitions, {
         openapi: '3.0.0',
         info,
         servers: [{ url: 'v1' }],
@@ -108,10 +107,10 @@ describe('class API', () => {
     })
   })
 
-  it('pins the version per generator class', () => {
-    const registry = new OpenAPIRegistry()
+  it('pins the output flavour to the requested version', () => {
+    const registry = OpenAPIRegistry()
     registry.register('S', Schema.NullOr(Schema.String))
-    expect(new OpenApiGeneratorV3(registry.definitions).generateComponents()).toStrictEqual({
+    expect(generateComponents(registry.definitions, { openapi: '3.0.0' })).toStrictEqual({
       ok: true,
       value: {
         components: {
@@ -120,7 +119,7 @@ describe('class API', () => {
         },
       },
     })
-    expect(new OpenApiGeneratorV31(registry.definitions).generateComponents()).toStrictEqual({
+    expect(generateComponents(registry.definitions, { openapi: '3.1.0' })).toStrictEqual({
       ok: true,
       value: {
         components: {
@@ -129,7 +128,7 @@ describe('class API', () => {
         },
       },
     })
-    expect(new OpenApiGeneratorV32(registry.definitions).generateComponents()).toStrictEqual({
+    expect(generateComponents(registry.definitions, { openapi: '3.2.0' })).toStrictEqual({
       ok: true,
       value: {
         components: {
@@ -139,25 +138,19 @@ describe('class API', () => {
       },
     })
     const info = { title: 'API', version: '1.0.0' }
-    const v31 = new OpenApiGeneratorV31(registry.definitions).generateDocument({
-      openapi: '3.1.0',
-      info,
-    })
+    const v31 = generateDocument(registry.definitions, { openapi: '3.1.0', info })
     expect(v31.ok ? v31.value.openapi : v31).toBe('3.1.0')
-    const v32 = new OpenApiGeneratorV32(registry.definitions).generateDocument({
-      openapi: '3.2.0',
-      info,
-    })
+    const v32 = generateDocument(registry.definitions, { openapi: '3.2.0', info })
     expect(v32.ok ? v32.value.openapi : v32).toBe('3.2.0')
   })
 
   it('copies x-* vendor extensions and parameter examples through annotate', () => {
-    const registry = new OpenAPIRegistry()
+    const registry = OpenAPIRegistry()
     registry.register(
       'Tagged',
       Schema.String.annotate({ 'x-internal': true, deprecated: true, examples: ['a'] }),
     )
-    expect(new OpenApiGeneratorV31(registry.definitions).generateComponents()).toStrictEqual({
+    expect(generateComponents(registry.definitions, { openapi: '3.1.0' })).toStrictEqual({
       ok: true,
       value: {
         components: {

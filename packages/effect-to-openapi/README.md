@@ -12,9 +12,9 @@ npm install effect-to-openapi effect
 
 ```ts
 import { Schema } from 'effect'
-import { createRegistry, generateDocument } from 'effect-to-openapi'
+import { OpenAPIRegistry, generateDocument } from 'effect-to-openapi'
 
-const registry = createRegistry()
+const registry = OpenAPIRegistry()
 
 const User = registry.register(
   'User',
@@ -45,6 +45,29 @@ if (result.ok) {
 } else {
   console.error(result.error.message)
 }
+```
+
+## OpenAPI version
+
+The output flavour is the `openapi` field of the config, and nothing else. There is no separate
+generator to pick:
+
+```ts
+// nullable: true, no webhooks
+generateDocument(registry.definitions, { openapi: '3.0.0', info })
+
+// type: ['string', 'null'], prefixItems, numeric exclusiveMinimum, webhooks
+generateDocument(registry.definitions, { openapi: '3.1.0', info })
+
+// the 3.1 shape, plus the 3.2 keywords the model carries (itemSchema, query, ...)
+generateDocument(registry.definitions, { openapi: '3.2.0', info })
+```
+
+Accepted values are `3.0.0` through `3.0.4`, `3.1.0`, `3.1.1` and `3.2.0`; the type rejects
+anything else. `generateComponents` reads the same field:
+
+```ts
+generateComponents(registry.definitions, { openapi: '3.1.0' })
 ```
 
 ## License

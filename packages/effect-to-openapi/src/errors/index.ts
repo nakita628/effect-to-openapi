@@ -1,7 +1,9 @@
 /**
  * Errors are plain discriminated objects carried through `{ ok: true, value } | { ok: false,
  * error }` results, never thrown. `type` is the discriminant; `message` always contains the
- * next action.
+ * next action. The two result helpers live here as well: they are the only things that need to
+ * name the error type, and this module is a leaf. The `Result` alias that types them stays
+ * module-local — it is plumbing, not API.
  */
 export type EffectToOpenAPIError =
   | { readonly type: 'EffectToOpenAPIError'; readonly message: string }
@@ -84,4 +86,47 @@ export function enhanceMissingParametersError(
   return error.type === 'MissingParameterDataError'
     ? missingParameterDataError({ ...error.data, ...paramsToAdd })
     : error
+}
+
+/**
+ * A generated value or the error that stopped its generation. Every generator returns one, so
+ * a failure travels up as a value instead of being thrown.
+ */
+type Result<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: EffectToOpenAPIError }
+/**
+ * Collects results into an array, short-circuiting on the first failure.
+ *
+ * @example
+ * collect([{ ok: true, value: 1 }, { ok: true, value: 2 }]) // { ok: true, value: [1, 2] }
+ */
+export function collect<T>(results: readonly Result<T>[]): Result<readonly T[]> {
+  const values: T[] = []
+  for (const result of results) {
+    if (!result.ok) {
+      return result
+    }
+    values.push(result.value)
+  }
+  return { ok: true, value: values } as const
+}
+
+/**
+ * Collects keyed results into a record, short-circuiting on the first failure.
+ *
+ * @example
+ * collectEntries([['a', { ok: true, value: 1 }]]) // { ok: true, value: { a: 1 } }
+ */
+export function collectEntries<T>(
+  entries: readonly (readonly [string, Result<T>])[],
+): Result<{ readonly [key: string]: T }> {
+  const record: { [key: string]: T } = {}
+  for (const [key, result] of entries) {
+    if (!result.ok) {
+      return result
+    }
+    record[key] = result.value
+  }
+  return { ok: true, value: record } as const
 }

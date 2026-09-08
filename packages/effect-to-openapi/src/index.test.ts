@@ -1,7 +1,7 @@
 import { Schema } from 'effect'
 import { describe, expect, it } from 'vite-plus/test'
 
-import { createRegistry, generateComponents, generateDocument } from './index.js'
+import { OpenAPIRegistry, generateComponents, generateDocument } from './index.js'
 
 const UUID_PATTERN =
   '^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$'
@@ -53,7 +53,7 @@ describe('smoke', () => {
   })
 
   it('generates a 3.1 document with paths, recursion and webhooks', () => {
-    const registry = createRegistry()
+    const registry = OpenAPIRegistry()
     const User = registry.register('User', Schema.Struct({ name: Schema.String }))
     type Tree = { readonly name: string; readonly children: readonly Tree[] }
     const Tree = Schema.Struct({

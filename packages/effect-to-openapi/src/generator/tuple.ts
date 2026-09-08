@@ -1,6 +1,7 @@
 import { SchemaAST } from 'effect'
 
 import type { AST } from '../ast/index.js'
+import { collect } from '../errors/index.js'
 import type { MapNullableType, MapSubSchema, VersionSpecifics } from '../types/index.js'
 import { numberValue } from '../utils/index.js'
 
@@ -42,10 +43,9 @@ export function tupleSchema(
   mapTupleItems: VersionSpecifics['mapTupleItems'],
 ) {
   const [rest] = ast.rest
-  const elements = ast.elements.map((element) => mapItem(element))
-  const failed = elements.find((element) => !element.ok)
-  if (failed !== undefined && !failed.ok) {
-    return failed
+  const elements = collect(ast.elements.map((element) => mapItem(element)))
+  if (!elements.ok) {
+    return elements
   }
   const restSchema = rest === undefined ? undefined : mapItem(rest)
   if (restSchema !== undefined && !restSchema.ok) {
@@ -56,11 +56,7 @@ export function tupleSchema(
     ok: true,
     value: {
       ...mapNullableType('array'),
-      ...mapTupleItems(
-        elements.flatMap((element) => (element.ok ? [element.value] : [])),
-        restSchema?.value,
-        required,
-      ),
+      ...mapTupleItems([...elements.value], restSchema?.value, required),
     },
   } as const
 }

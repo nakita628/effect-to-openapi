@@ -4,7 +4,6 @@ import type { EffectToOpenAPIError } from '../errors/index.js'
 import type {
   Callbacks,
   Components,
-  Content,
   Discriminator,
   Encoding,
   Example,
@@ -30,12 +29,9 @@ export type ReferenceObject = Reference
 export type SchemaObject = Schema
 export type SchemaObjectType = Type
 export type ParameterObject = Parameter
-export type BaseParameterObject = Header
-export type HeadersObject = { readonly [k: string]: Header | Reference }
 export type MediaTypeObject = Media
-export type ContentObject = Content
-export type RequestBodyObject = RequestBody
 export type ResponseObject = Responses
+export type HeadersObject = { readonly [k: string]: Header | Reference }
 export type PathItemObject = PathItem
 export type ComponentsObject = Components
 export type OpenAPIObject = OpenAPI
@@ -202,6 +198,22 @@ export type GeneratorOptions = {
 }
 
 export type SchemaRefValue = SchemaObject | ReferenceObject | 'pending'
+
+/**
+ * Everything the generator reads from one schema. Resolving the chain of encodings, suspensions
+ * and wrapper unions is the expensive part of a generation — a suspension re-runs its thunk on
+ * every walk — so it is done once and the facts are threaded through the generation steps.
+ */
+export type SchemaInfo = {
+  /** The node the generator dispatches on: the innermost node of the chain. */
+  readonly base: SchemaAST.AST
+  /** JSON Schema keywords contributed by the checks of every node in the chain. */
+  readonly keywords: { readonly [keyword: string]: unknown }
+  readonly metadata: FullMetadata
+  readonly refId: string | undefined
+  readonly defaultValue: unknown
+  readonly isNullable: boolean
+}
 
 // Registry input types. Raw component objects are owned by the caller and passed through
 // untouched, so they are typed with the 3.2 model (a superset of 3.0 / 3.1).

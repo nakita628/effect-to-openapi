@@ -81,32 +81,33 @@ function rawComponentsOf<T extends OpenAPIComponentObject>(
 }
 
 function buildComponents(ctx: GenerationContext): ComponentsObject {
-  const rawComponents = Object.fromEntries(
-    [...new Set(ctx.rawComponents.map((raw) => raw.componentType))].map((componentType) => [
-      componentType,
-      Object.fromEntries(
-        ctx.rawComponents
-          .filter((raw) => raw.componentType === componentType)
-          .map((raw) => [raw.name, raw.component] as const),
-      ),
-    ]),
-  )
+  const sort = ctx.options?.sortComponents === 'alphabetically'
+  const order = <T>(entries: { readonly [key: string]: T }) =>
+    sort ? sortObjectByKeys(entries) : entries
 
   // Raw components are entirely under the user's control, so they are passed through as-is.
-  const allSchemas = {
-    ...rawComponentsOf(ctx, 'schemas', isSchemaComponent),
-    ...filteredSchemaRefs(ctx),
-  }
-  const allParameters = {
-    ...rawComponentsOf(ctx, 'parameters', isParameterComponent),
-    ...Object.fromEntries(ctx.paramRefs),
-  }
-  const sort = ctx.options?.sortComponents === 'alphabetically'
-
+  // `schemas` and `parameters` are built below instead: they also carry the generated ones.
   return {
-    ...rawComponents,
-    schemas: sort ? sortObjectByKeys(allSchemas) : allSchemas,
-    parameters: sort ? sortObjectByKeys(allParameters) : allParameters,
+    ...Object.fromEntries(
+      [...new Set(ctx.rawComponents.map((raw) => raw.componentType))]
+        .filter((componentType) => componentType !== 'schemas' && componentType !== 'parameters')
+        .map((componentType) => [
+          componentType,
+          Object.fromEntries(
+            ctx.rawComponents
+              .filter((raw) => raw.componentType === componentType)
+              .map((raw) => [raw.name, raw.component] as const),
+          ),
+        ]),
+    ),
+    schemas: order({
+      ...rawComponentsOf(ctx, 'schemas', isSchemaComponent),
+      ...filteredSchemaRefs(ctx),
+    }),
+    parameters: order({
+      ...rawComponentsOf(ctx, 'parameters', isParameterComponent),
+      ...Object.fromEntries(ctx.paramRefs),
+    }),
   }
 }
 

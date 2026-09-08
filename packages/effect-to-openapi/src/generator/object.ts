@@ -2,7 +2,13 @@ import { SchemaAST } from 'effect'
 
 import type { AST } from '../ast/index.js'
 import { isOptionalProperty, stringProperties, templateLiteralPattern } from '../ast/index.js'
-import type { MapNullableType, MapSubSchema } from '../types/index.js'
+import { collectEntries } from '../errors/index.js'
+import type {
+  MapNullableType,
+  MapSubSchema,
+  ReferenceObject,
+  SchemaObject,
+} from '../types/index.js'
 
 function indexSignatureKeywords(ast: AST.Objects, mapItem: MapSubSchema) {
   const patterns = ast.indexSignatures.flatMap((signature) =>
@@ -85,13 +91,13 @@ export function objectSchema(
   mapNullableType: MapNullableType,
   mapItem: MapSubSchema,
 ) {
-  const properties = stringProperties(ast).map(({ name, property }) => ({
-    name,
-    schema: propertySchema(property, mapItem),
-  }))
-  const failed = properties.find(({ schema }) => !schema.ok)
-  if (failed !== undefined && !failed.schema.ok) {
-    return failed.schema
+  const properties = collectEntries<SchemaObject | ReferenceObject>(
+    stringProperties(ast).map(
+      ({ name, property }) => [name, propertySchema(property, mapItem)] as const,
+    ),
+  )
+  if (!properties.ok) {
+    return properties
   }
   const indexKeywords = indexSignatureKeywords(ast, mapItem)
   if (!indexKeywords.ok) {
@@ -102,13 +108,7 @@ export function objectSchema(
     ok: true,
     value: {
       ...mapNullableType('object'),
-      ...(properties.length > 0
-        ? {
-            properties: Object.fromEntries(
-              properties.flatMap(({ name, schema }) => (schema.ok ? [[name, schema.value]] : [])),
-            ),
-          }
-        : {}),
+      ...(Object.keys(properties.value).length > 0 ? { properties: properties.value } : {}),
       default: defaultValue,
       ...(required.length > 0 ? { required } : {}),
       ...indexKeywords.value,

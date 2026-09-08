@@ -1,19 +1,5 @@
-export {
-  createRegistry,
-  generateComponents,
-  generateDocument,
-  OpenAPIRegistry,
-  OpenApiGeneratorV3,
-  OpenApiGeneratorV31,
-  OpenApiGeneratorV32,
-} from './core/index.js'
-export type {
-  OpenAPIObjectConfig,
-  OpenAPIObjectConfigV30,
-  OpenAPIObjectConfigV31,
-  OpenAPIObjectConfigV32,
-  Registry,
-} from './core/index.js'
+export { OpenAPIRegistry, generateComponents, generateDocument } from './core/index.js'
+export type { OpenAPIObjectConfig, Registry } from './core/index.js'
 export {
   conflictError,
   effectToOpenAPIError,

@@ -128,13 +128,21 @@ function isTopLike(ast: AST.AST) {
 }
 
 /**
- * Returns `true` when the wire value accepts `null` (`unknown` / `any` accept it as well).
+ * Returns `true` when the wire value of an already resolved chain accepts `null` (`unknown` /
+ * `any` accept it as well).
  */
-export function isNullableAst(ast: AST.AST): boolean {
-  return chain(ast).some(
+export function isNullableChain(nodes: readonly AST.AST[]): boolean {
+  return nodes.some(
     (node) =>
       AST.isNull(node) || isTopLike(node) || (AST.isUnion(node) && node.types.some(isNullableAst)),
   )
+}
+
+/**
+ * Returns `true` when the wire value accepts `null` (`unknown` / `any` accept it as well).
+ */
+export function isNullableAst(ast: AST.AST): boolean {
+  return isNullableChain(chain(ast))
 }
 
 /**
@@ -226,11 +234,10 @@ const JSON_TYPES: { readonly [tag: string]: string } = {
  * hints derived from well-known declarations (`Schema.Date` → `format: 'date-time'`).
  *
  * @example
- * checks(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(3)).ast)
+ * checksOf(chain(Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(3)).ast))
  * // { minLength: 1, maxLength: 3 }
  */
-export function checks(ast: AST.AST): { readonly [keyword: string]: unknown } {
-  const nodes = chain(ast)
+export function checksOf(nodes: readonly AST.AST[]): { readonly [keyword: string]: unknown } {
   const base = nodes.at(-1)
   const jsonType = base === undefined ? undefined : JSON_TYPES[base._tag]
   const keywordsOf = (node: AST.AST) => [
@@ -240,6 +247,13 @@ export function checks(ast: AST.AST): { readonly [keyword: string]: unknown } {
     ),
   ]
   return Object.fromEntries(nodes.toReversed().flatMap(keywordsOf))
+}
+
+/**
+ * `checksOf` for a node whose chain has not been resolved yet.
+ */
+export function checks(ast: AST.AST): { readonly [keyword: string]: unknown } {
+  return checksOf(chain(ast))
 }
 
 /**
