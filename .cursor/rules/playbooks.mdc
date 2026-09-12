@@ -73,7 +73,7 @@ Every playbook ends the same way: `pnpm fix`, then `pnpm build`, `pnpm test`, `p
    `// oxlint-disable-next-line rule-name -- reason` on that line, and say in the report that
    you added a suppression and why.
 5. An unknown word is one line in `project-words.txt`. A missing dictionary is not a reason to
-   loosen `cspell.config.yml`.
+   loosen `cspell.config.yaml`.
 
 ## Change the public API
 
