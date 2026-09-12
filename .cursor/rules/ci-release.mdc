@@ -20,7 +20,7 @@ alwaysApply: false
 - actionlint runs through `scripts/actionlint.ts`, which downloads a pinned release and
   verifies its checksum. Bumping it means changing `VERSION` and **every entry of
   `CHECKSUMS`** together, taken from that release's `*_checksums.txt`.
-- A schema warning actionlint cannot know about is silenced in `.github/actionlint.yaml` by
+- A schema warning actionlint cannot know about is silenced in `.github/actionlint.yml` by
   its exact message, with the reason — not by dropping the check.
 
 ## Releasing
