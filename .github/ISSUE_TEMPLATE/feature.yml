@@ -1,0 +1,46 @@
+name: Feature
+description: Request a feature
+labels: [enhancement]
+body:
+  - type: textarea
+    id: who
+    attributes:
+      label: Who
+      description: Who this is for.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What
+      description: What to add.
+    validations:
+      required: true
+  - type: textarea
+    id: when
+    attributes:
+      label: When
+      description: When it is needed.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where
+      description: Where it belongs.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: Why it is needed.
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How
+      description: How it should work.
+    validations:
+      required: true
