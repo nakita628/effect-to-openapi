@@ -46,7 +46,7 @@ package copy; never replace the symlink with a file.
 - cspell reads **every** file, source and config included, not just the docs. Code blocks are
   checked too, because the README blocks are what users copy.
 - A new project word is a one-line addition to `project-words.txt`, and nothing else.
-  Do not add `ignoreWords` or `ignorePaths` to `cspell.config.yaml` to silence a word.
+  Do not add `ignoreWords` or `ignorePaths` to `cspell.config.yml` to silence a word.
 - camelCase and snake_case are split automatically, so `unionPreferredType` needs no entry.
 - Everything git ignores is skipped already.
 
